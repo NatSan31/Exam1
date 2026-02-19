@@ -36,6 +36,10 @@ class PasswordController
 
         try {
             $count = $data['count'] ?? 1;
+            if ($count < 1 || $count > 50) {
+                throw new Exception("El count debe estar entre 1 y 50");
+            }
+
             $passwords = [];
 
             for ($i = 0; $i < $count; $i++) {

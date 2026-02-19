@@ -2,10 +2,22 @@
 
 class PasswordService
 {
+    private static $instance = null;
+
     private $uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private $lowercase = "abcdefghijklmnopqrstuvwxyz";
     private $numbers = "0123456789";
     private $symbols = "!@#$%^&*()_+-=[]{}|;:,.<>?";
+
+    private function __construct() {}
+
+    public static function getInstance()
+    {
+        if (self::$instance === null) {
+            self::$instance = new PasswordService();
+        }
+        return self::$instance;
+    }
 
     public function generate($options)
     {
@@ -15,37 +27,57 @@ class PasswordService
             throw new Exception("La longitud debe estar entre 4 y 128");
         }
 
-        $characters = "";
+        $includeUpper = !empty($options['includeUppercase']);
+        $includeLower = !empty($options['includeLowercase']);
+        $includeNumbers = !empty($options['includeNumbers']);
+        $includeSymbols = !empty($options['includeSymbols']);
 
-        if (!empty($options['includeUppercase'])) {
-            $characters .= $this->uppercase;
-        }
-        if (!empty($options['includeLowercase'])) {
-            $characters .= $this->lowercase;
-        }
-        if (!empty($options['includeNumbers'])) {
-            $characters .= $this->numbers;
-        }
-        if (!empty($options['includeSymbols'])) {
-            $characters .= $this->symbols;
-        }
-
-        if ($characters === "") {
+        if (!$includeUpper && !$includeLower && !$includeNumbers && !$includeSymbols) {
             throw new Exception("Debes seleccionar al menos un tipo de carácter");
+        }
+
+        $characters = "";
+        $requiredChars = [];
+
+        if ($includeUpper) {
+            $characters .= $this->uppercase;
+            $requiredChars[] = $this->uppercase[random_int(0, strlen($this->uppercase)-1)];
+        }
+        if ($includeLower) {
+            $characters .= $this->lowercase;
+            $requiredChars[] = $this->lowercase[random_int(0, strlen($this->lowercase)-1)];
+        }
+        if ($includeNumbers) {
+            $characters .= $this->numbers;
+            $requiredChars[] = $this->numbers[random_int(0, strlen($this->numbers)-1)];
+        }
+        if ($includeSymbols) {
+            $characters .= $this->symbols;
+            $requiredChars[] = $this->symbols[random_int(0, strlen($this->symbols)-1)];
         }
 
         if (!empty($options['excludeAmbiguous'])) {
             $characters = str_replace(['0','O','l','1'], '', $characters);
         }
 
-        $password = "";
-        $max = strlen($characters) - 1;
+        $password = $requiredChars;
 
-        for ($i = 0; $i < $length; $i++) {
-            $password .= $characters[random_int(0, $max)];
+        while (count($password) < $length) {
+            $password[] = $characters[random_int(0, strlen($characters)-1)];
         }
 
-        return $password;
+        shuffle($password);
+
+        $finalPassword = implode("", $password);
+
+        // Soporte de patrón regex opcional
+        if (!empty($options['pattern'])) {
+            if (!preg_match($options['pattern'], $finalPassword)) {
+                throw new Exception("La contraseña no cumple el patrón especificado");
+            }
+        }
+
+        return $finalPassword;
     }
 
     public function validate($password, $requirements)

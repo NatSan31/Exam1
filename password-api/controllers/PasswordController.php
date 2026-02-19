@@ -8,8 +8,9 @@ class PasswordController
 
     public function __construct()
     {
-        $this->service = new PasswordService();
-    }
+    $this->service = PasswordService::getInstance();
+    }   
+
 
     public function generatePassword()
     {
